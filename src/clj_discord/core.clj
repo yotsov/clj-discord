@@ -29,12 +29,28 @@
 
 (def gateway (obtain-gateway))
 
+(def ready (atom nil))
+
 (def socket
-  (ws/connect
+  (ws/connect 
     gateway
-    :on-receive #(prn 'received %)))
+    :on-receive #(do 
+                   (println %)
+                   (if (.equals "READY" (get (json/read-str %) "t"))
+                     (reset! ready (json/read-str %))))))
 
-(ws/send-msg socket 
-             (json/write-str {:op 2, :d {:token token,:properties {:$browser "clj-discord"}}}))
+(ws/send-msg socket (json/write-str {:op 2, :d {:token token,:properties {:$browser "clj-discord"}}}))
 
-;;(ws/close socket)
+(while (nil? @ready)
+  (do 
+    (println "still not ready")
+    (Thread/sleep 1000)))
+
+(defn keep-alive []
+  (while true
+    (do
+      (println (get (get @ready "d") "heartbeat_interval"))
+      (ws/send-msg socket (json/write-str {:op 1, :d (System/currentTimeMillis)}))
+      (Thread/sleep (get (get @ready "d") "heartbeat_interval")))))
+
+;(ws/close socket)
