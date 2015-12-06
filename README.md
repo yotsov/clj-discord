@@ -2,7 +2,7 @@
 Clojure library for using the the Discord API
 
 
-# To use this library:
+## To use this library:
 
 1. clone this repository
 2. do "lein install"
@@ -10,7 +10,7 @@ Clojure library for using the the Discord API
 4. add to your namespace declaration (:require [clj-discord.core :as discord])
 
 
-# To connect to Discord
+## To connect to Discord:
 
 call (discord/connect email password functions) where:
 
@@ -45,7 +45,7 @@ data corresponding to each has not been made known by Discord yet, but here are 
 
 
 
-# type -> data
+## type -> data
 
 GUILD_MEMBER_ADD  ->  {user {username gaga, id 123146380976848896, discriminator 6104, avatar nil}, roles [], joined_at 2015-12-06T19:39:45.191505+00:00, guild_id 120276561306845184}
 
@@ -62,7 +62,7 @@ MESSAGE_UPDATE  ->  {mention_everyone false, embeds [], mentions [], channel_id 
 TYPING_START  ->  {user_id 123147067660042241, timestamp 1449431180, channel_id 120276561306845184}
 
 
-# Other functionalities:
+## Other functionalities:
 
 
 The API also provides the possibility to create messages in Discord, for example: (discord/post-message "120276561306845184" "this is a chat message")
@@ -71,6 +71,10 @@ where "120276561306845184" is a channel_id, which we can obtain for example from
 
 
 To disconnect from Discord: (discord/disconnect)
+
+
+
+## Detailed example:
 
 For a detailed, tested example, check the example folder.
 
