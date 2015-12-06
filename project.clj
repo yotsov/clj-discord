@@ -3,4 +3,5 @@
                  [clj-http "2.0.0"]
                  [org.clojure/data.json "0.2.6"]
                  [stylefruits/gniazdo "0.4.1"]]
-  :main clj-discord.core)
+  :main clj-discord.core
+  :profiles {:uberjar {:aot [clj-discord.core]}})

@@ -1,4 +1,5 @@
 (ns clj-discord-example.core
+  (:gen-class)
   (:require [clj-discord.core :as discord]))
 
 (def email    (first (.split (slurp "credentials.txt") "/")))
@@ -26,10 +27,21 @@
 (defn log-event [type data] 
   (println "Received: " type " -> " data))
 
-(discord/connect email password {"MESSAGE_CREATE" [get-commands get-id get-random]
-                                 "MESSAGE_UPDATE" [get-commands get-id get-random]
-                                 "READY" [do-nothing]
-                                 "OTHER" [log-event]})
+(defn welcome-newcomer [type data]
+  (Thread/sleep 3000)
+  (discord/post-message-with-mention 
+    "120276561306845184" 
+    "Welcome; please type !commands and I will let you know what commands I accept."
+    (get (get data "user") "id")))
+
+(defn -main [& args]
+  (discord/connect email password {"MESSAGE_CREATE" [get-commands get-id get-random]
+                                   "MESSAGE_UPDATE" [get-commands get-id get-random]
+                                   "GUILD_MEMBER_ADD" [welcome-newcomer]
+                                   "READY" [do-nothing]
+                                   "OTHER" [log-event]}))
 
 ;(discord/disconnect)
+
+
 

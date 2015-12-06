@@ -1,4 +1,5 @@
 (ns clj-discord.core
+  (:gen-class)
   (:require [clj-http.client :as client]
             [clojure.data.json :as json]
             [gniazdo.core :as ws]))
