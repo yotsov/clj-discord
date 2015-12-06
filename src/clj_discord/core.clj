@@ -57,7 +57,7 @@
   (ws/send-msg @the-socket (json/write-str {:op 2, :d {:token @the-token,:properties {:$browser "clj-discord"}}}))
   (.start (Thread. (fn [] 
                      (while (and @the-keepalive (nil? @the-ready)) (Thread/sleep 100))
-                     (if @the-keepalive (println "Connected."))
+                     (if @the-keepalive (println "Connected to Discord."))
                      (while @the-keepalive
                        (do
                          (ws/send-msg @the-socket (json/write-str {:op 1, :d (System/currentTimeMillis)}))

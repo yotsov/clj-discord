@@ -1,12 +1,35 @@
 (ns clj-discord-example.core
   (:require [clj-discord.core :as discord]))
 
-;; not committing "credentials.txt" because clojurecup 2015 repos are public
 (def email    (first (.split (slurp "credentials.txt") "/")))
 (def password (last  (.split (slurp "credentials.txt") "/")))
 
-(defn react-to-ready [type data] (println "received ready: " data))
+(defn answer-command [type data command answer]
+  (if (= command (get data "content"))
+    (discord/post-message-with-mention 
+      (get data "channel_id") 
+      answer
+      (get (get data "author") "id"))))
 
-(defn react-to-other [type data] (println "received " type " -> " data))
+(defn get-commands [type data]
+  (answer-command type data "!commands" "Currently I can answer the following commands: !commands !id !random"))
 
-(discord/connect email password {"READY" [react-to-ready], "OTHER" [react-to-other]})
+(defn get-id [type data]
+  (answer-command type data "!id" (str "Your Discord ID is: " (get (get data "author") "id"))))
+
+(defn get-random [type data]
+  (answer-command type data "!random" (str "Here you are a random number between 1 and 100: " (+ (rand-int 100) 1))))
+
+(defn do-nothing [type data]
+  nil)
+
+(defn log-event [type data] 
+  (println "Received: " type " -> " data))
+
+(discord/connect email password {"MESSAGE_CREATE" [get-commands get-id get-random]
+                                 "MESSAGE_UPDATE" [get-commands get-id get-random]
+                                 "READY" [do-nothing]
+                                 "OTHER" [log-event]})
+
+;(discord/disconnect)
+
