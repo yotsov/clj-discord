@@ -31,27 +31,6 @@
       (println "Gateway obtention failed with status code " status))))
 
 
-(defn connect [email password]
-  (disconnect)
-  (reset! the-keepalive true)
-  (reset! the-token (obtain-token email password))
-  (reset! the-gateway (obtain-gateway @the-token))
-  (reset! the-socket
-          (ws/connect 
-            @the-gateway
-            :on-receive #(do 
-                           (println %)
-                           (if (.equals "READY" (get (json/read-str %) "t"))
-                             (reset! the-ready (json/read-str %))))))
-  (ws/send-msg @the-socket (json/write-str {:op 2, :d {:token @the-token,:properties {:$browser "clj-discord"}}}))
-  (while (and @the-keepalive (nil? @the-ready)) (Thread/sleep 1000))
-  (.start (Thread. (fn [] (while @the-keepalive
-                            (do
-                              (ws/send-msg @the-socket (json/write-str {:op 1, :d (System/currentTimeMillis)}))
-                              (Thread/sleep (get (get @the-ready "d") "heartbeat_interval")))))))
-  (println "Connected."))
-
-
 (defn disconnect []
   (reset! the-keepalive false)
   (if (not (nil? @the-socket)) (ws/close @the-socket))
@@ -59,4 +38,28 @@
   (reset! the-gateway nil)
   (reset! the-socket nil)
   (reset! the-ready nil))
+
+
+(defn connect [email password functions]
+  (disconnect)
+  (reset! the-keepalive true)
+  (reset! the-token (obtain-token email password))
+  (reset! the-gateway (obtain-gateway @the-token))
+  (reset! the-socket
+          (ws/connect 
+            @the-gateway
+            :on-receive #(let [received (json/read-str %)
+                               t (get received "t")
+                               d (get received "d")]
+                           (if (.equals "READY" t) (reset! the-ready d))
+                           (doseq [f (get functions t (get functions "OTHER" []))] (f t d))
+                           (if (.equals "RESUMED" t) (connect email password functions)))))
+  (ws/send-msg @the-socket (json/write-str {:op 2, :d {:token @the-token,:properties {:$browser "clj-discord"}}}))
+  (.start (Thread. (fn [] 
+                     (while (and @the-keepalive (nil? @the-ready)) (Thread/sleep 100))
+                     (if @the-keepalive (println "Connected."))
+                     (while @the-keepalive
+                       (do
+                         (ws/send-msg @the-socket (json/write-str {:op 1, :d (System/currentTimeMillis)}))
+                         (Thread/sleep (get @the-ready "heartbeat_interval"))))))))
 

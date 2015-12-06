@@ -5,4 +5,8 @@
 (def email    (first (.split (slurp "credentials.txt") "/")))
 (def password (last  (.split (slurp "credentials.txt") "/")))
 
-(discord/connect email password)
+(defn react-to-ready [type data] (println "received ready!"))
+
+(defn react-to-other [type data] (println "received " type))
+
+(discord/connect email password {"READY" [react-to-ready], "OTHER" [react-to-other]})
