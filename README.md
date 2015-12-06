@@ -2,7 +2,7 @@
 Clojure library for using the the Discord API
 
 
-To use this library:
+# To use this library:
 
 1. clone this repository
 2. do "lein install"
@@ -10,7 +10,9 @@ To use this library:
 4. add to your namespace declaration (:require [clj-discord.core :as discord])
 
 
-To connect to Discord, call (discord/connect email password functions) where:
+# To connect to Discord
+
+call (discord/connect email password functions) where:
 
 1. email and password are the Discord credentials (you need to create a Discord account)
 2. functions is a map from strings to seqs of functions, which might look something like this:
@@ -41,8 +43,9 @@ the type of the current event.
 data is a map that contains data relevant to the event type, which Discord has sent us. A full list of event types and the format of
 data corresponding to each has not been made known by Discord yet, but here are several useful examples:
 
-type -> data
--------------
+
+
+# type -> data
 
 GUILD_MEMBER_ADD  ->  {user {username gaga, id 123146380976848896, discriminator 6104, avatar nil}, roles [], joined_at 2015-12-06T19:39:45.191505+00:00, guild_id 120276561306845184}
 
@@ -59,6 +62,7 @@ MESSAGE_UPDATE  ->  {mention_everyone false, embeds [], mentions [], channel_id 
 TYPING_START  ->  {user_id 123147067660042241, timestamp 1449431180, channel_id 120276561306845184}
 
 
+# Other functionalities:
 
 
 The API also provides the possibility to create messages in Discord, for example: (discord/post-message "120276561306845184" "this is a chat message")
