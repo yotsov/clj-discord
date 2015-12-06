@@ -1,4 +1,4 @@
-(ns example.core)
+(ns clj-discord-example.core)
 
 (defn foo
   "I don't do a whole lot."
