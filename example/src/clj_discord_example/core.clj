@@ -2,8 +2,8 @@
   (:gen-class)
   (:require [clj-discord.core :as discord]))
 
-(def email    (first (.split (slurp "credentials.txt") "/")))
-(def password (last  (.split (slurp "credentials.txt") "/")))
+(defonce email    (.trim (first (.split (slurp "credentials.txt") "/"))))
+(defonce password (.trim (last  (.split (slurp "credentials.txt") "/"))))
 
 (defn answer-command [type data command answer]
   (if (= command (get data "content"))
