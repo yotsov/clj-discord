@@ -63,3 +63,15 @@
                          (ws/send-msg @the-socket (json/write-str {:op 1, :d (System/currentTimeMillis)}))
                          (Thread/sleep (get @the-ready "heartbeat_interval"))))))))
 
+
+(defn post-message [channel_id message]
+  (client/post (str "https://discordapp.com/api/channels/" channel_id "/messages")
+               {:body (json/write-str {:content message
+                                       :nonce (str (System/currentTimeMillis))
+                                       :tts false})
+                :headers {:authorization @the-token}
+                :content-type :json
+                :accept :json}))
+
+
+
