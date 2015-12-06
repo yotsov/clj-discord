@@ -3,11 +3,13 @@
             [clojure.data.json :as json]
             [gniazdo.core :as ws]))
 
-;; not committing "credentials.txt" because clojurecup 2015 repos are public
-(def email    (first (.split (slurp "credentials.txt") "/")))
-(def password (last  (.split (slurp "credentials.txt") "/")))
+(def the-token (atom nil))
+(def the-gateway (atom nil))
+(def the-socket (atom nil))
+(def the-ready (atom nil))
+(def the-keepalive (atom nil))
 
-(defn obtain-token []
+(defn obtain-token [email password]
   (let [response (client/post "https://discordapp.com/api/auth/login"
                               {:body (json/write-str {:email email :password password})
                                :content-type :json
@@ -17,9 +19,7 @@
       (get (json/read-str (:body response)) "token")
       (println "Token obtention failed with status code " status))))
 
-(def token (obtain-token))
-
-(defn obtain-gateway []
+(defn obtain-gateway [token]
   (let [response (client/get "https://discordapp.com/api/gateway"
                              {:headers {:authorization token}})
         status (:status response)]
@@ -27,30 +27,26 @@
       (get (json/read-str (:body response)) "url")
       (println "Gateway obtention failed with status code " status))))
 
-(def gateway (obtain-gateway))
+(defn connect [email password]
+  (!reset the-keepalive true)
+  (reset! the-token (obtain-token email password))
+  (reset! the-gateway (obtain-gateway @the-token))
+  (reset! the-socket   
+          (ws/connect 
+            @the-gateway
+            :on-receive #(do 
+                           (println %)
+                           (if (.equals "READY" (get (json/read-str %) "t"))
+                             (reset! the-ready (json/read-str %))))))
+  (ws/send-msg @the-socket (json/write-str {:op 2, :d {:token @the-token,:properties {:$browser "clj-discord"}}}))
+  (while (nil? @the-ready) (Thread/sleep 1000))
+  (.start (Thread. (fn [] (while @the-keepalive
+                            (do
+                              (println (get (get @the-ready "d") "heartbeat_interval"))
+                              (ws/send-msg @the-socket (json/write-str {:op 1, :d (System/currentTimeMillis)}))
+                              (Thread/sleep (get (get @the-ready "d") "heartbeat_interval"))))))))
 
-(def ready (atom nil))
+(defn disconnect []
+  (!reset the-keepalive false)
+  (ws/close socket))
 
-(def socket
-  (ws/connect 
-    gateway
-    :on-receive #(do 
-                   (println %)
-                   (if (.equals "READY" (get (json/read-str %) "t"))
-                     (reset! ready (json/read-str %))))))
-
-(ws/send-msg socket (json/write-str {:op 2, :d {:token token,:properties {:$browser "clj-discord"}}}))
-
-(while (nil? @ready)
-  (do 
-    (println "still not ready")
-    (Thread/sleep 1000)))
-
-(defn keep-alive []
-  (while true
-    (do
-      (println (get (get @ready "d") "heartbeat_interval"))
-      (ws/send-msg socket (json/write-str {:op 1, :d (System/currentTimeMillis)}))
-      (Thread/sleep (get (get @ready "d") "heartbeat_interval")))))
-
-;(ws/close socket)

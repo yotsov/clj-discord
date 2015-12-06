@@ -1,6 +1,6 @@
-(ns clj-discord-example.core)
+(ns clj-discord-example.core
+  (:require [clj-discord.core :as discord]))
 
-(defn foo
-  "I don't do a whole lot."
-  [x]
-  (println x "Hello, World!"))
+;; not committing "credentials.txt" because clojurecup 2015 repos are public
+(def email    (first (.split (slurp "credentials.txt") "/")))
+(def password (last  (.split (slurp "credentials.txt") "/")))
