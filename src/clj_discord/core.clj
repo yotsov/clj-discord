@@ -28,7 +28,7 @@
       (println "Gateway obtention failed with status code " status))))
 
 (defn connect [email password]
-  (!reset the-keepalive true)
+  (reset! the-keepalive true)
   (reset! the-token (obtain-token email password))
   (reset! the-gateway (obtain-gateway @the-token))
   (reset! the-socket   
@@ -47,6 +47,6 @@
                               (Thread/sleep (get (get @the-ready "d") "heartbeat_interval"))))))))
 
 (defn disconnect []
-  (!reset the-keepalive false)
-  (ws/close socket))
+  (reset! the-keepalive false)
+  (ws/close @the-socket))
 

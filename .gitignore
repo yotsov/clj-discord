@@ -4,4 +4,14 @@
 /bin/
 /.lein-repl-history
 /.nrepl-port
-/credentials.txt
+/pom.xml
+
+/example/.classpath
+/example/.project
+/example/target/
+/example/bin/
+/example/.lein-repl-history
+/example/.nrepl-port
+/example/pom.xml
+
+/example/credentials.txt
