@@ -65,10 +65,9 @@
                          (Thread/sleep (get @the-ready "heartbeat_interval"))))))))
 
 
-(defn post-message-with-mentions [channel_id message mentions]
+(defn post-message [channel_id message]
   (client/post (str "https://discordapp.com/api/channels/" channel_id "/messages")
                {:body (json/write-str {:content message
-                                       :mentions mentions
                                        :nonce (str (System/currentTimeMillis))
                                        :tts false})
                 :headers {:authorization @the-token}
@@ -76,13 +75,6 @@
                 :accept :json}))
 
 
-(defn post-message [channel_id message]
-  (post-message-with-mentions channel_id message '()))
-
-
 (defn post-message-with-mention [channel_id message user_id]
-  (post-message-with-mentions channel_id (str "<@" user_id "> " message) (list user_id)))
-
-
-
+  (post-message channel_id (str "<@" user_id ">" message)))
 
