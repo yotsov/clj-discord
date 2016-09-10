@@ -43,7 +43,9 @@
                        " "
                        (rand-nth ["short-hair" "long-hair"])
                        " "
-                        (rand-nth ["not-talkative" "of-average-talkativeness" "long-winded"])
+                       (rand-nth ["not-talkative" "of-average-talkativeness" "long-winded"])
+"\n"
+"STR:" (r3d6) " DEX:" (r3d6) " CON:" (r3d6) " INT:" (r3d6) " WIS:" (r3d6) " CHA:" (r3d6) " hot:" (r3d6) " cul:" (r3d6) " grb:" (r3d6) " rch:" (r3d6)
 )))
 
 (defn log-event [type data] 
