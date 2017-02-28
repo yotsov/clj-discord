@@ -14,4 +14,4 @@
 /example/.nrepl-port
 /example/pom.xml
 
-/example/credentials.txt
+/example/token.txt
