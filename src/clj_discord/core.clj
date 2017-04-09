@@ -48,9 +48,10 @@
                        (if (nil? @the-heartbeat-interval) 
                          (Thread/sleep 100)
                          (do
-                           (Thread/sleep @the-heartbeat-interval)
                            (if log-events (println "\n" "Sending heartbeat " @the-seq))
-                           (ws/send-msg @the-socket (json/write-str {:op 1, :d @the-seq}))))))))
+                           (ws/send-msg @the-socket (json/write-str {:op 1, :d @the-seq}))
+                           (Thread/sleep @the-heartbeat-interval)
+                           ))))))
   (Thread/sleep 2000)
   (ws/send-msg @the-socket (json/write-str {:op 2, :d {"token" @the-token 
                                                        "properties" {"$os" "linux"
