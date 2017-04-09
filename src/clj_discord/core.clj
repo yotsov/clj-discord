@@ -20,7 +20,7 @@
   (reset! the-seq nil)
   (reset! the-heartbeat-interval nil))
 
-(defn connect [token functions]
+(defn connect [token functions log-events]
   (disconnect)
   (reset! the-keepalive true)
   (reset! the-token (str "Bot " token))
@@ -30,11 +30,12 @@
                             (:body (http/get "https://discordapp.com/api/gateway" 
                                              {:headers {:authorization @the-token}}))) 
                           "url") 
-                        "?v=5&encoding=json"))
+                        "?v=6&encoding=json"))
   (reset! the-socket
           (ws/connect 
             @the-gateway
             :on-receive #(let [received (json/read-str %)
+                               logevent (if log-events (println "\n" %))
                                op (get received "op")
                                type (get received "t")
                                data (get received "d")
@@ -48,6 +49,7 @@
                          (Thread/sleep 100)
                          (do
                            (Thread/sleep @the-heartbeat-interval)
+                           (if log-events (println "\n" "Sending heartbeat " @the-seq))
                            (ws/send-msg @the-socket (json/write-str {:op 1, :d @the-seq}))))))))
   (Thread/sleep 2000)
   (ws/send-msg @the-socket (json/write-str {:op 2, :d {"token" @the-token 
