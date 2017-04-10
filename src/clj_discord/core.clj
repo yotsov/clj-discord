@@ -10,8 +10,10 @@
 (defonce the-heartbeat-interval (atom nil))
 (defonce the-keepalive (atom false))
 (defonce the-seq (atom nil))
+(defonce reconnect-needed (atom false))
 
 (defn disconnect []
+  (reset! reconnect-needed false)
   (reset! the-keepalive false)
   (if (not (nil? @the-socket)) (ws/close @the-socket))
   (reset! the-token nil)
@@ -44,22 +46,29 @@
                            (if (not (nil? seq)) (reset! the-seq seq))
                            (if (not (nil? type)) (doseq [afunction (get functions type (get functions "ALL_OTHER" []))] (afunction type data))))))
   (.start (Thread. (fn [] 
-                     (while @the-keepalive
-                       (if (nil? @the-heartbeat-interval) 
-                         (Thread/sleep 100)
-                         (do
-                           (if log-events (println "\n" "Sending heartbeat " @the-seq))
-                           (ws/send-msg @the-socket (json/write-str {:op 1, :d @the-seq}))
-                           (Thread/sleep @the-heartbeat-interval)
-                           ))))))
-  (Thread/sleep 2000)
+                     (try
+                       (while @the-keepalive
+                         (if (nil? @the-heartbeat-interval) 
+                           (Thread/sleep 100)
+                           (do
+                             (if log-events (println "\nSending heartbeat " @the-seq))                     
+                             (ws/send-msg @the-socket (json/write-str {:op 1, :d @the-seq}))
+                             (Thread/sleep @the-heartbeat-interval)
+                             )))
+                       (catch Exception e (do 
+                                            (println "\nCaught exception: " (.getMessage e))
+                                            (reset! reconnect-needed true)
+                                            ))))))
+  (Thread/sleep 1000)
   (ws/send-msg @the-socket (json/write-str {:op 2, :d {"token" @the-token 
                                                        "properties" {"$os" "linux"
                                                                      "$browser" "clj-discord"
                                                                      "$device" "clj-discord"
                                                                      "$referrer" ""
                                                                      "$referring_domain" ""}
-                                                       "compress" false}})))
+                                                       "compress" false}}))
+  (while (not @reconnect-needed) (Thread/sleep 1000))
+  (connect token functions log-events))
 
 (defn post-message [channel_id message]
   (http/post (str "https://discordapp.com/api/channels/" channel_id "/messages")
