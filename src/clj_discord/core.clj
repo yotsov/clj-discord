@@ -1,6 +1,7 @@
 (ns clj-discord.core
   (:gen-class)
-  (:require [clj-http.client :as http]
+  (:require [clojure.java.io :as io]
+            [clj-http.client :as http]
             [clojure.data.json :as json]
             [gniazdo.core :as ws]))
 
@@ -26,15 +27,15 @@
   (disconnect)
   (reset! the-keepalive true)
   (reset! the-token (str "Bot " token))
-  (reset! the-gateway (str 
-                        (get 
-                          (json/read-str 
-                            (:body (http/get "https://discordapp.com/api/gateway" 
-                                             {:headers {:authorization @the-token}}))) 
-                          "url") 
+  (reset! the-gateway (str
+                        (get
+                          (json/read-str
+                            (:body (http/get "https://discordapp.com/api/gateway"
+                                             {:headers {:authorization @the-token}})))
+                          "url")
                         "?v=6&encoding=json"))
   (reset! the-socket
-          (ws/connect 
+          (ws/connect
             @the-gateway
             :on-receive #(let [received (json/read-str %)
                                logevent (if log-events (println "\n" %))
@@ -45,22 +46,22 @@
                            (if (= 10 op) (reset! the-heartbeat-interval (get data "heartbeat_interval")))
                            (if (not (nil? seq)) (reset! the-seq seq))
                            (if (not (nil? type)) (doseq [afunction (get functions type (get functions "ALL_OTHER" []))] (afunction type data))))))
-  (.start (Thread. (fn [] 
+  (.start (Thread. (fn []
                      (try
                        (while @the-keepalive
-                         (if (nil? @the-heartbeat-interval) 
+                         (if (nil? @the-heartbeat-interval)
                            (Thread/sleep 100)
                            (do
-                             (if log-events (println "\nSending heartbeat " @the-seq))                     
+                             (if log-events (println "\nSending heartbeat " @the-seq))
                              (ws/send-msg @the-socket (json/write-str {:op 1, :d @the-seq}))
                              (Thread/sleep @the-heartbeat-interval)
                              )))
-                       (catch Exception e (do 
+                       (catch Exception e (do
                                             (println "\nCaught exception: " (.getMessage e))
                                             (reset! reconnect-needed true)
                                             ))))))
   (Thread/sleep 1000)
-  (ws/send-msg @the-socket (json/write-str {:op 2, :d {"token" @the-token 
+  (ws/send-msg @the-socket (json/write-str {:op 2, :d {"token" @the-token
                                                        "properties" {"$os" "linux"
                                                                      "$browser" "clj-discord"
                                                                      "$device" "clj-discord"
@@ -79,12 +80,20 @@
               :content-type :json
               :accept :json}))
 
+(defn post-message-with-file [channel_id message file_name]
+  (http/post (str "https://discordapp.com/api/channels/" channel_id "/messages")
+             {:multipart [{:name "content" :content message}
+                          {:name "nonce" :content (str (System/currentTimeMillis))}
+                          {:name "tts" :content "false"}
+                          {:name file_name :part_name "file" :content (io/file file_name)}]
+              :headers {:authorization @the-token}}))
+
 (defn post-message-with-mention [channel_id message user_id]
   (post-message channel_id (str "<@" user_id ">" message)))
 
 (defn answer-command [data command answer]
   (if (= command (get data "content"))
-    (post-message-with-mention 
-      (get data "channel_id") 
+    (post-message-with-mention
+      (get data "channel_id")
       (str " " answer)
       (get (get data "author") "id"))))
