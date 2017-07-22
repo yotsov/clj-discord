@@ -1,4 +1,4 @@
-(defproject clj-discord "0.1.0-SNAPSHOT"
+(defproject clj-discord "0.1.1"
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [clj-http "2.3.0"]
                  [org.clojure/data.json "0.2.6"]
