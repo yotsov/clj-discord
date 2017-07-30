@@ -81,7 +81,7 @@
                                                                       "$referring_domain" ""}
                                                         "compress" false}}))
    (while (not @reconnect-needed) (Thread/sleep 1000))
-   (connect token functions log-events)))
+   (connect token functions log-events max-text-message-size)))
 
 (defn post-message [channel_id message]
   (http/post (str "https://discordapp.com/api/channels/" channel_id "/messages")
