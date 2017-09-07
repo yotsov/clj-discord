@@ -15,12 +15,10 @@
 (defonce the-gateway (atom nil))
 (defonce the-socket (atom nil))
 (defonce the-heartbeat-interval (atom nil))
-(defonce the-keepalive (atom false))
 (defonce the-seq (atom nil))
-(defonce reconnect-needed (atom false))
+(defonce the-keepalive (atom false))
 
 (defn disconnect []
-  (reset! reconnect-needed false)
   (reset! the-keepalive false)
   (if (not (nil? @the-socket)) (ws/close @the-socket))
   (reset! the-token nil)
@@ -31,13 +29,17 @@
 
 (defn connect
   ([token functions]
-    (connect token functions default-log-events? default-log-function default-max-text-message-size))
+    (connect token functions default-log-events? default-log-function default-max-text-message-size false))
   ([token functions log-events?]
-    (connect token functions log-events? default-log-function default-max-text-message-size))
+    (connect token functions log-events? default-log-function default-max-text-message-size false))
   ([token functions log-events? max-text-message-size]
-    (connect token functions log-events? default-log-function max-text-message-size))
+    (connect token functions log-events? default-log-function max-text-message-size false))
   ([token functions log-events? log-function max-text-message-size]  
-    (disconnect)
+    (connect functions log-events? log-function max-text-message-size false))
+  ([token functions log-events? log-function max-text-message-size reconnecting?]
+    (if reconnecting? (do 
+                        (disconnect)
+                        (Thread/sleep 5000)))
     (reset! the-keepalive true)
     (reset! the-token (str "Bot " token))
     (reset! the-gateway (str
@@ -65,8 +67,8 @@
                                (if (not (nil? type)) (doseq [afunction (get functions type (get functions "ALL_OTHER" []))]
                                                        (afunction type data)))))))
     (.start (Thread. (fn []
-                       (try
-                         (while @the-keepalive
+                       (while @the-keepalive
+                         (try
                            (if (nil? @the-heartbeat-interval)
                              (Thread/sleep 100)
                              (do
@@ -76,7 +78,7 @@
                                )))
                          (catch Exception e (do
                                               (log-function "Caught exception: " (.getMessage e))
-                                              (reset! reconnect-needed true)
+                                              (reset! the-keepalive false)
                                               ))))))
     (Thread/sleep 1000)
     (ws/send-msg @the-socket (json/write-str {:op 2, :d {"token" @the-token
@@ -86,14 +88,33 @@
                                                                        "$referrer" ""
                                                                        "$referring_domain" ""}
                                                          "compress" false}}))
-    (while (not @reconnect-needed) (Thread/sleep 1000))
+    (while @the-keepalive (Thread/sleep 1000))
     (try
-      (connect token functions log-events? log-function max-text-message-size)
-      (catch java.net.UnknownHostException e 
+      (connect token functions log-events? log-function max-text-message-size true)
+      (catch Exception e 
         (do
           (log-function "Caught exception: " (.getMessage e))
-          (Thread/sleep 10000)
-          (connect token functions log-events? log-function max-text-message-size))))))
+          (Thread/sleep 60000)
+          (try
+            (connect token functions log-events? log-function max-text-message-size true)
+            (catch Exception e 
+              (do
+                (log-function "Caught exception: " (.getMessage e))
+                (log-function "Abandoning!")
+                (disconnect)
+                ))))))))
+
+(defn connect-without-blocking
+  ([token functions]
+    (connect-without-blocking token functions default-log-events? default-log-function default-max-text-message-size))
+  ([token functions log-events?]
+    (connect-without-blocking token functions log-events? default-log-function default-max-text-message-size))
+  ([token functions log-events? max-text-message-size]
+    (connect-without-blocking token functions log-events? default-log-function max-text-message-size))
+  ([token functions log-events? log-function max-text-message-size]  
+    (connect-without-blocking functions log-events? log-function max-text-message-size))
+  ([token functions log-events? log-function max-text-message-size]
+    ((.start (Thread. (fn [] (connect token functions log-events? log-function max-text-message-size)))))))
 
 (defn post-message [channel-id message]
   (http/post (str "https://discordapp.com/api/channels/" channel-id "/messages")
