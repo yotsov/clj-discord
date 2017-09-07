@@ -11,22 +11,6 @@
 (defn default-log-function [& args] (println "\n" args))
 (def default-log-events? true)
 
-(defonce the-token (atom nil))
-(defonce the-gateway (atom nil))
-(defonce the-socket (atom nil))
-(defonce the-heartbeat-interval (atom nil))
-(defonce the-seq (atom nil))
-(defonce the-keepalive (atom false))
-
-(defn disconnect []
-  (reset! the-keepalive false)
-  (if (not (nil? @the-socket)) (ws/close @the-socket))
-  (reset! the-token nil)
-  (reset! the-gateway nil)
-  (reset! the-socket nil)
-  (reset! the-seq nil)
-  (reset! the-heartbeat-interval nil))
-
 (defn connect
   ([token functions]
     (connect token functions default-log-events? default-log-function default-max-text-message-size false))
@@ -37,6 +21,22 @@
   ([token functions log-events? log-function max-text-message-size]  
     (connect functions log-events? log-function max-text-message-size false))
   ([token functions log-events? log-function max-text-message-size reconnecting?]
+    (let [the-token (atom nil)
+          the-gateway (atom nil)
+          the-socket (atom nil)
+          the-heartbeat-interval (atom nil)
+          the-seq (atom nil)
+          the-keepalive (atom false)
+          
+          disconnect (fn []
+                       (reset! the-keepalive false)
+                       (if (not (nil? @the-socket)) (ws/close @the-socket))
+                       (reset! the-token nil)
+                       (reset! the-gateway nil)
+                       (reset! the-socket nil)
+                       (reset! the-seq nil)
+                       (reset! the-heartbeat-interval nil))
+          ]
     (if reconnecting? (do 
                         (disconnect)
                         (Thread/sleep 5000)))
@@ -102,7 +102,7 @@
                 (log-function "Caught exception: " (.getMessage e))
                 (log-function "Abandoning!")
                 (disconnect)
-                ))))))))
+                )))))))))
 
 (defn connect-without-blocking
   ([token functions]
@@ -116,29 +116,30 @@
   ([token functions log-events? log-function max-text-message-size]
     ((.start (Thread. (fn [] (connect token functions log-events? log-function max-text-message-size)))))))
 
-(defn post-message [channel-id message]
+(defn post-message [channel-id message token]
   (http/post (str "https://discordapp.com/api/channels/" channel-id "/messages")
              {:body (json/write-str {:content message
                                      :nonce (str (System/currentTimeMillis))
                                      :tts false})
-              :headers {:authorization @the-token}
+              :headers {:authorization token}
               :content-type :json
               :accept :json}))
 
-(defn post-message-with-file [channel-id message filename]
+(defn post-message-with-file [channel-id message filename token]
   (http/post (str "https://discordapp.com/api/channels/" channel-id "/messages")
              {:multipart [{:name "content" :content message}
                           {:name "nonce" :content (str (System/currentTimeMillis))}
                           {:name "tts" :content "false"}
                           {:name filename :part_name "file" :content (io/file filename)}]
-              :headers {:authorization @the-token}}))
+              :headers {:authorization token}}))
 
-(defn post-message-with-mention [channel-id message user-id]
-  (post-message channel-id (str "<@" user-id ">" message)))
+(defn post-message-with-mention [channel-id message user-id token]
+  (post-message channel-id (str "<@" user-id ">" message) token))
 
-(defn answer-command [data command answer]
+(defn answer-command [data command answer token]
   (if (= command (get data "content"))
     (post-message-with-mention
       (get data "channel_id")
       (str " " answer)
-      (get (get data "author") "id"))))
+      (get (get data "author") "id")
+      token)))
