@@ -111,8 +111,6 @@
     (connect-without-blocking token functions log-events? default-log-function default-max-text-message-size))
   ([token functions log-events? max-text-message-size]
     (connect-without-blocking token functions log-events? default-log-function max-text-message-size))
-  ([token functions log-events? log-function max-text-message-size]  
-    (connect-without-blocking functions log-events? log-function max-text-message-size))
   ([token functions log-events? log-function max-text-message-size]
     ((.start (Thread. (fn [] (connect token functions log-events? log-function max-text-message-size)))))))
 
