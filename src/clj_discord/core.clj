@@ -75,11 +75,11 @@
                                (if log-events? (log-function "Sending heartbeat " @the-seq))
                                (ws/send-msg @the-socket (json/write-str {:op 1, :d @the-seq}))
                                (Thread/sleep @the-heartbeat-interval)
-                               )))
-                         (catch Exception e (do
-                                              (log-function "Caught exception: " (.getMessage e))
-                                              (reset! the-keepalive false)
-                                              ))))))
+                               ))
+                           (catch Exception e (do
+                                                (log-function "Caught exception: " (.getMessage e))
+                                                (reset! the-keepalive false)
+                                                )))))))
     (Thread/sleep 1000)
     (ws/send-msg @the-socket (json/write-str {:op 2, :d {"token" @the-token
                                                          "properties" {"$os" "linux"
@@ -111,8 +111,6 @@
     (connect-without-blocking token functions log-events? default-log-function default-max-text-message-size))
   ([token functions log-events? max-text-message-size]
     (connect-without-blocking token functions log-events? default-log-function max-text-message-size))
-  ([token functions log-events? log-function max-text-message-size]  
-    (connect-without-blocking functions log-events? log-function max-text-message-size))
   ([token functions log-events? log-function max-text-message-size]
     ((.start (Thread. (fn [] (connect token functions log-events? log-function max-text-message-size)))))))
 
