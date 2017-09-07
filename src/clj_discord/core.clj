@@ -19,7 +19,7 @@
   ([token functions log-events? max-text-message-size]
     (connect token functions log-events? default-log-function max-text-message-size false))
   ([token functions log-events? log-function max-text-message-size]  
-    (connect functions log-events? log-function max-text-message-size false))
+    (connect token functions log-events? log-function max-text-message-size false))
   ([token functions log-events? log-function max-text-message-size reconnecting?]
     (let [the-token (atom nil)
           the-gateway (atom nil)
