@@ -11,11 +11,10 @@
   (println "\nReceived: " type " -> " data))
 
 (defn -main [& args]
-  (discord/connect token 
-                   {"MESSAGE_CREATE" [d100]
-                    "MESSAGE_UPDATE" [d100]
-                    ; "ALL_OTHER" [log-event]
-                    }
-                   true))
+  (discord/connect {:token token 
+                    :functions {"MESSAGE_CREATE" [d100]
+                                "MESSAGE_UPDATE" [d100]
+                                ; "ALL_OTHER" [log-event]
+                                }}))
 
 ;(discord/disconnect)
