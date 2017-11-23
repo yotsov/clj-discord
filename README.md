@@ -6,7 +6,7 @@ This is a very minimalist library, but if you just want to build a simple bot
 that reacts to certain commands and events by sending chat messages, it should be sufficient.
 
 I am using this to run my bot (which is actually the program in the "example" folder).
-Unless something bad has happened, it should be online now [here](https://discord.gg/NtpFMVB) and should answer the !d100 command.
+Unless something bad has happened, it should be online now [here](https://discord.gg/cAqbNEH) and should answer the !d100 command.
 
 ## To use this library:
 
