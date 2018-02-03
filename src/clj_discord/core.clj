@@ -22,11 +22,12 @@
         (swap! bots dissoc bot)))))
 
 (defn connect [params]
-  (let [{:keys [token functions log-events? log-function max-text-message-size bot]
+  (let [{:keys [token functions log-events? log-function max-text-message-size bot rate-limit]
          :or {functions {}
               log-events? true
               log-function (fn [& args] (println "\n" args))
               max-text-message-size (* 64 1024)
+              rate-limit 5000
               bot (swap! previous-bot inc)}} params
         token (if (.startsWith token "Bot ") (.trim token) (str "Bot " (.trim token)))
         params {:token token
@@ -34,7 +35,8 @@
                 :log-events? log-events?
                 :log-function log-function
                 :max-text-message-size max-text-message-size
-                :bot bot}
+                :bot bot
+                :rate-limit rate-limit}
 
         websocket-client (new WebSocketClient (new SslContextFactory))
         heartbeat-thread (Thread. (fn []
@@ -125,12 +127,13 @@
     bot))
 
 (defn check-rate-limit [bot]
-  (let [now (/ (System/currentTimeMillis) 1000)
+  (let [now (System/currentTimeMillis)
         previous-activity (:activity (get @bots bot))
         previous-activity (if (nil? previous-activity) 0 previous-activity)
-        seconds-since-previous-activity (- now previous-activity)]
+        millis-since-previous-activity (- now previous-activity)
+        rate-limit (-> (get @bots bot) :params :rate-limit)]
     (if
-      (> 5 seconds-since-previous-activity)
+      (> rate-limit millis-since-previous-activity)
       false
       (do
         (swap! bots update-in [bot] assoc :activity now)
