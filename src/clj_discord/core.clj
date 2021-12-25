@@ -12,14 +12,14 @@
 
 (defn disconnect
   ([]
-    (disconnect [0]))
+   (disconnect [0]))
   ([bot]
-    (if (contains? @bots bot)
-      (let [socket (:socket (get @bots bot))
-            websocket-client (:websocket-client (get @bots bot))]
-        (if (not (nil? socket)) (ws/close socket))
-        (if (not (nil? websocket-client)) (.stop websocket-client))
-        (swap! bots dissoc bot)))))
+   (if (contains? @bots bot)
+     (let [socket (:socket (get @bots bot))
+           websocket-client (:websocket-client (get @bots bot))]
+       (if (not (nil? socket)) (ws/close socket))
+       (if (not (nil? websocket-client)) (.stop ^WebSocketClient websocket-client))
+       (swap! bots dissoc bot)))))
 
 (defn connect [params]
   (let [{:keys [token functions log-events? log-function max-text-message-size bot rate-limit]
@@ -29,7 +29,7 @@
               max-text-message-size (* 64 1024)
               rate-limit 5000
               bot (swap! previous-bot inc)}} params
-        token (if (.startsWith token "Bot ") (.trim token) (str "Bot " (.trim token)))
+        token (if (.startsWith ^String token "Bot ") (.trim ^String token) (str "Bot " (.trim ^String token)))
         params {:token token
                 :functions functions
                 :log-events? log-events?
@@ -39,34 +39,32 @@
                 :rate-limit rate-limit}
 
         websocket-client (new WebSocketClient (new SslContextFactory))
-        heartbeat-thread (Thread. (fn []
-                                    (while (:keep-alive (get @bots bot))
-                                      (try
-                                        (if (nil? (:heartbeat-interval (get @bots bot)))
-                                          (Thread/sleep 100)
-                                          (do
-                                            (if log-events? (log-function "Sending heartbeat " (:seq (get @bots bot))))
-                                            (ws/send-msg (:socket (get @bots bot)) (json/write-str {:op 1, :d (:seq (get @bots bot))}))
-                                            (Thread/sleep (:heartbeat-interval (get @bots bot)))
-                                            ))
-                                        (catch Exception e (do
-                                                             (log-function "Caught exception: " (.getMessage e))
-                                                             (swap! bots update-in [bot] assoc :keep-alive false)
-                                                             ))))))]
+        heartbeat-thread (Thread. ^Runnable (fn []
+                                              (while (:keep-alive (get @bots bot))
+                                                (try
+                                                  (if (nil? (:heartbeat-interval (get @bots bot)))
+                                                    (Thread/sleep 100)
+                                                    (do
+                                                      (if log-events? (log-function "Sending heartbeat " (:seq (get @bots bot))))
+                                                      (ws/send-msg (:socket (get @bots bot)) (json/write-str {:op 1, :d (:seq (get @bots bot))}))
+                                                      (Thread/sleep (:heartbeat-interval (get @bots bot)))))
+                                                  (catch Exception e (do
+                                                                       (log-function "Caught exception: " (.getMessage e))
+                                                                       (swap! bots update-in [bot] assoc :keep-alive false)))))))]
 
-    (if (contains? @bots bot) (do
-                                (disconnect bot)
-                                (Thread/sleep 5000)))
+    (when (contains? @bots bot)
+      (disconnect bot)
+      (Thread/sleep 5000))
 
     (swap! bots assoc bot {:params params
                            :keep-alive true
                            :gateway (str
-                                      (get
-                                        (json/read-str
-                                          (:body (http/get "https://discordapp.com/api/gateway"
-                                                           {:headers {:authorization token}})))
-                                        "url")
-                                      "?v=6&encoding=json")
+                                     (get
+                                      (json/read-str
+                                       (:body (http/get "https://discordapp.com/api/gateway"
+                                                        {:headers {:authorization token}})))
+                                      "url")
+                                     "?v=6&encoding=json")
                            :websocket-client websocket-client
                            :heartbeat-thread heartbeat-thread
                            :control-thread (Thread/currentThread)})
@@ -76,20 +74,20 @@
 
     (swap! bots update-in [bot] assoc :socket
            (ws/connect
-             (:gateway (get @bots bot))
-             :client
-             websocket-client
-             :on-receive
-             #(let [received (json/read-str %)
-                    logevent (if log-events? (log-function %))
-                    op (get received "op")
-                    type (get received "t")
-                    data (get received "d")
-                    seq (get received "s")]
-                (if (= 10 op) (swap! bots update-in [bot] assoc :heartbeat-interval (get data "heartbeat_interval")))
-                (if (not (nil? seq)) (swap! bots update-in [bot] assoc :seq seq))
-                (if (not (nil? type)) (doseq [afunction (get functions type (get functions "ALL_OTHER" []))]
-                                        (afunction type data))))))
+            (:gateway (get @bots bot))
+            :client
+            websocket-client
+            :on-receive
+            #(let [received (json/read-str %)
+                   _ (if log-events? (log-function %))
+                   op (get received "op")
+                   type (get received "t")
+                   data (get received "d")
+                   seq (get received "s")]
+               (if (= 10 op) (swap! bots update-in [bot] assoc :heartbeat-interval (get data "heartbeat_interval")))
+               (if (not (nil? seq)) (swap! bots update-in [bot] assoc :seq seq))
+               (if (not (nil? type)) (doseq [afunction (get functions type (get functions "ALL_OTHER" []))]
+                                       (afunction type data))))))
 
     (.start heartbeat-thread)
     (Thread/sleep 1000)
@@ -115,15 +113,14 @@
               (do
                 (log-function "Caught exception: " (.getMessage e))
                 (log-function "Abandoning the attempts to reconnect bot " bot)
-                (disconnect bot)
-                ))))))))
+                (disconnect bot)))))))))
 
 (defn connect-without-blocking [params]
   (let [params-contain-bot (contains? params :bot)
         bot (if params-contain-bot (:bot params) (swap! previous-bot inc))
-        checking-bot (if (not (integer? bot)) (throw (Exception. "Malformed bot identifier!")))
+        _ (if (not (integer? bot)) (throw (Exception. "Malformed bot identifier!")))
         params (assoc params :bot bot)]
-    (.start (Thread. (fn [] (connect params))))
+    (.start (Thread. ^Runnable (fn [] (connect params))))
     bot))
 
 (defn check-rate-limit [bot]
@@ -133,7 +130,7 @@
         millis-since-previous-activity (- now previous-activity)
         rate-limit (-> (get @bots bot) :params :rate-limit)]
     (if
-      (> rate-limit millis-since-previous-activity)
+     (> rate-limit millis-since-previous-activity)
       false
       (do
         (swap! bots update-in [bot] assoc :activity now)
@@ -141,45 +138,45 @@
 
 (defn post-message
   ([channel-id message]
-    (post-message 0 channel-id message))
+   (post-message 0 channel-id message))
   ([bot channel-id message]
-    (if (check-rate-limit bot)
-      (http/post (str "https://discordapp.com/api/channels/" channel-id "/messages")
-                 {:body (json/write-str {:content message
-                                         :nonce (str (System/currentTimeMillis))
-                                         :tts false})
-                  :headers {:authorization (:token (:params (get @bots bot)))}
-                  :content-type :json
-                  :accept :json}))))
+   (if (check-rate-limit bot)
+     (http/post (str "https://discordapp.com/api/channels/" channel-id "/messages")
+                {:body (json/write-str {:content message
+                                        :nonce (str (System/currentTimeMillis))
+                                        :tts false})
+                 :headers {:authorization (:token (:params (get @bots bot)))}
+                 :content-type :json
+                 :accept :json}))))
 
 (defn post-message-with-file
   ([channel-id message filename]
-    (post-message-with-file 0 channel-id message filename))
+   (post-message-with-file 0 channel-id message filename))
   ([bot channel-id message filename]
-    (if (check-rate-limit bot)
-      (http/post (str "https://discordapp.com/api/channels/" channel-id "/messages")
-                 {:multipart [{:name "content" :content message}
-                              {:name "nonce" :content (str (System/currentTimeMillis))}
-                              {:name "tts" :content "false"}
-                              {:name filename :part_name "file" :content (io/file filename)}]
-                  :headers {:authorization (:token (:params (get @bots bot)))}}))))
+   (if (check-rate-limit bot)
+     (http/post (str "https://discordapp.com/api/channels/" channel-id "/messages")
+                {:multipart [{:name "content" :content message}
+                             {:name "nonce" :content (str (System/currentTimeMillis))}
+                             {:name "tts" :content "false"}
+                             {:name filename :part_name "file" :content (io/file filename)}]
+                 :headers {:authorization (:token (:params (get @bots bot)))}}))))
 
 (defn post-message-with-mention
   ([channel-id message user-id]
-    (post-message-with-mention 0 channel-id message user-id))
+   (post-message-with-mention 0 channel-id message user-id))
   ([bot channel-id message user-id]
-    (post-message bot channel-id (str "<@" user-id ">" message))))
+   (post-message bot channel-id (str "<@" user-id ">" message))))
 
 (defn answer-command
   ([data command answer]
-    (answer-command 0 data command answer))
+   (answer-command 0 data command answer))
   ([bot data command answer]
-    (if (= command (get data "content"))
-      (post-message-with-mention
-        bot
-        (get data "channel_id")
-        (str " " answer)
-        (get (get data "author") "id")))))
+   (if (= command (get data "content"))
+     (post-message-with-mention
+      bot
+      (get data "channel_id")
+      (str " " answer)
+      (get (get data "author") "id")))))
 
 (defn delete-message
   ([data command]

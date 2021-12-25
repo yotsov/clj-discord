@@ -11,4 +11,4 @@ that reacts to certain commands and events by sending chat messages, it should b
 2. do `lein install`
 3. add to your project dependencies `[clj-discord "0.1.0-SNAPSHOT"]`
 4. add to your namespace declaration `(:require [clj-discord.core :as discord])`
-5. have a look at the code in the "example" folder
+5. have a look at the code in the namespace clj-discord.example
