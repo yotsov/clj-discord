@@ -1,7 +1,7 @@
 (defproject clj-discord "0.1.0-SNAPSHOT"
   :dependencies [[org.clojure/clojure "1.10.3"]
-                 [clj-http "2.3.0"]
-                 [org.clojure/data.json "0.2.6"]
+                 [clj-http "3.12.3"]
+                 [org.clojure/data.json "2.4.0"]
                  [stylefruits/gniazdo "1.0.0"]]
 
   :plugins [[lein-ancient "1.0.0-RC3"] ;; finds updatable dependencies

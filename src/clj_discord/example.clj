@@ -4,7 +4,7 @@
 
 (defonce token (.trim (slurp "token.txt")))
 
-(defn d100 [type data]
+(defn d100 [_ data]
   (discord/answer-command data "!d100" (str "Here you are a random number between 1 and 100: " (inc (rand-int 100)))))
 
 (defn log-event [type data]
@@ -14,7 +14,6 @@
   (discord/connect {:token token
                     :functions {"MESSAGE_CREATE" [d100]
                                 "MESSAGE_UPDATE" [d100]
-                                ; "ALL_OTHER" [log-event]
-                                }}))
+                                "ALL_OTHER" [log-event]}}))
 
 ;(discord/disconnect)
