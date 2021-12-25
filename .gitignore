@@ -5,13 +5,6 @@
 /.lein-repl-history
 /.nrepl-port
 /pom.xml
-
-/example/.classpath
-/example/.project
-/example/target/
-/example/bin/
-/example/.lein-repl-history
-/example/.nrepl-port
-/example/pom.xml
-
-/example/token.txt
+/token.txt
+/.eastwood
+/.idea/
