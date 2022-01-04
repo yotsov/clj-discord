@@ -14,11 +14,11 @@
   ([]
    (disconnect [0]))
   ([bot]
-   (if (contains? @bots bot)
+   (when (contains? @bots bot)
      (let [socket (:socket (get @bots bot))
            websocket-client (:websocket-client (get @bots bot))]
-       (if (not (nil? socket)) (ws/close socket))
-       (if (not (nil? websocket-client)) (.stop ^WebSocketClient websocket-client))
+       (when-not (nil? socket) (ws/close socket))
+       (when-not (nil? websocket-client) (.stop ^WebSocketClient websocket-client))
        (swap! bots dissoc bot)))))
 
 (defn connect [params]
@@ -45,7 +45,7 @@
                                                   (if (nil? (:heartbeat-interval (get @bots bot)))
                                                     (Thread/sleep 100)
                                                     (do
-                                                      (if log-events? (log-function "Sending heartbeat " (:seq (get @bots bot))))
+                                                      (when log-events? (log-function "Sending heartbeat " (:seq (get @bots bot))))
                                                       (ws/send-msg (:socket (get @bots bot)) (json/write-str {:op 1, :d (:seq (get @bots bot))}))
                                                       (Thread/sleep (:heartbeat-interval (get @bots bot)))))
                                                   (catch Exception e (do
@@ -79,14 +79,14 @@
             websocket-client
             :on-receive
             #(let [received (json/read-str %)
-                   _ (if log-events? (log-function %))
+                   _ (when log-events? (log-function %))
                    op (get received "op")
                    type (get received "t")
                    data (get received "d")
                    seq (get received "s")]
-               (if (= 10 op) (swap! bots update-in [bot] assoc :heartbeat-interval (get data "heartbeat_interval")))
-               (if (not (nil? seq)) (swap! bots update-in [bot] assoc :seq seq))
-               (if (not (nil? type)) (doseq [afunction (get functions type (get functions "ALL_OTHER" []))]
+               (when (= 10 op) (swap! bots update-in [bot] assoc :heartbeat-interval (get data "heartbeat_interval")))
+               (when-not (nil? seq) (swap! bots update-in [bot] assoc :seq seq))
+               (when-not (nil? type) (doseq [afunction (get functions type (get functions "ALL_OTHER" []))]
                                        (afunction type data))))))
 
     (.start heartbeat-thread)
@@ -118,7 +118,7 @@
 (defn connect-without-blocking [params]
   (let [params-contain-bot (contains? params :bot)
         bot (if params-contain-bot (:bot params) (swap! previous-bot inc))
-        _ (if (not (integer? bot)) (throw (Exception. "Malformed bot identifier!")))
+        _ (when-not (integer? bot) (throw (Exception. "Malformed bot identifier!")))
         params (assoc params :bot bot)]
     (.start (Thread. ^Runnable (fn [] (connect params))))
     bot))
@@ -140,7 +140,7 @@
   ([channel-id message]
    (post-message 0 channel-id message))
   ([bot channel-id message]
-   (if (check-rate-limit bot)
+   (when (check-rate-limit bot)
      (http/post (str "https://discordapp.com/api/channels/" channel-id "/messages")
                 {:body (json/write-str {:content message
                                         :nonce (str (System/currentTimeMillis))
@@ -153,7 +153,7 @@
   ([channel-id message filename]
    (post-message-with-file 0 channel-id message filename))
   ([bot channel-id message filename]
-   (if (check-rate-limit bot)
+   (when (check-rate-limit bot)
      (http/post (str "https://discordapp.com/api/channels/" channel-id "/messages")
                 {:multipart [{:name "content" :content message}
                              {:name "nonce" :content (str (System/currentTimeMillis))}
@@ -171,7 +171,7 @@
   ([data command answer]
    (answer-command 0 data command answer))
   ([bot data command answer]
-   (if (= command (get data "content"))
+   (when (= command (get data "content"))
      (post-message-with-mention
       bot
       (get data "channel_id")
@@ -183,5 +183,5 @@
    (delete-message 0 data command))
   ([bot data command]
    (let [channel_id (get data "channel_id") message (get data "id")]
-     (if (and (check-rate-limit bot) (= command (get data "content")))
+     (when (and (check-rate-limit bot) (= command (get data "content")))
        (http/delete (str "https://discordapp.com/api/channels/" channel_id "/messages/" message "?token=" (:token (:params (get @bots bot)))) {:throw-exceptions false})))))

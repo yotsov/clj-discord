@@ -13,3 +13,4 @@ touch token.txt
 lein eastwood
 rm token.txt
 lein kibit
+lein clj-kondo --lint src
